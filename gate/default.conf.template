@@ -1,0 +1,26 @@
+map $http_authorization $fc_authorized {
+    default 0;
+    "Bearer ${FIRECRAWL_PROXY_KEY}" 1;
+}
+
+server {
+    listen 3002;
+    client_max_body_size 50m;
+
+    location = /healthz {
+        access_log off;
+        return 200 "ok\n";
+    }
+
+    location / {
+        if ($fc_authorized = 0) {
+            return 401 '{"success":false,"error":"Unauthorized"}';
+        }
+        proxy_pass http://api:3002;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header Connection "";
+        proxy_read_timeout 600s;
+        proxy_send_timeout 600s;
+    }
+}
